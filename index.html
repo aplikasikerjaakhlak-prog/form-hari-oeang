@@ -203,7 +203,7 @@
   .follow.need .fbox{border-color:var(--red);animation:shake .4s}
   .slideIn{animation:fadeUp .45s var(--ease) both}
   /* Tombol presentasi booth */
-  .pres{display:flex;align-items:center;gap:12px;width:100%;margin:-6px 0 18px;padding:12px 14px;border-radius:14px;cursor:pointer;text-align:left;
+  .pres{display:flex;align-items:center;gap:12px;width:100%;margin:0 0 14px;padding:12px 14px;border-radius:14px;cursor:pointer;text-align:left;
     font:inherit;color:var(--ink);background:linear-gradient(135deg,#fff,#eef5fc);border:1.5px solid #cfe1f3;transition:transform .2s,box-shadow .3s}
   .pres[hidden]{display:none}
   .pres .pg svg{transition:transform .3s var(--ease)}
@@ -530,11 +530,6 @@
         <div class="eyebrow a langkah" style="--i:0"></div>
         <h1 class="a" style="--i:1" data-t="data.judul"></h1>
         <p class="lead a" style="--i:1" id="intro" data-tm="data.intro"></p>
-        <button type="button" class="pres a" style="--i:2" id="presBtn" hidden>
-          <span class="pi"><svg viewBox="0 0 24 24"><rect x="2.5" y="4" width="19" height="13" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M10 8.2v5.6l4.6-2.8z" fill="currentColor"/></svg></span>
-          <span class="pt"><b data-t="presentasi.label"></b><small data-t="presentasi.keterangan"></small></span>
-          <span class="pg"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span>
-        </button>
         <span class="accent"></span>
         <div class="field a" style="--i:2">
           <input id="nama" placeholder=" " maxlength="100" autocomplete="name">
@@ -627,7 +622,12 @@
           <h1 class="a" style="--i:8" data-t="selesai.judul"></h1>
           <p class="lead a" style="--i:9" id="doneMsg">Terima kasih, penilaian kamu sudah kami terima.</p>
           <div class="summary a" style="--i:10" id="summary"></div>
-          <div class="btnrow a" style="--i:11">
+          <button type="button" class="pres a" style="--i:11" id="presBtn" hidden>
+            <span class="pi"><svg viewBox="0 0 24 24"><rect x="2.5" y="4" width="19" height="13" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M10 8.2v5.6l4.6-2.8z" fill="currentColor"/></svg></span>
+            <span class="pt"><b data-t="presentasi.label"></b><small data-t="presentasi.keterangan"></small></span>
+            <span class="pg"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span>
+          </button>
+          <div class="btnrow a" style="--i:12">
             <button class="btn sec red" onclick="bukaReview()"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>Cek Penilaian</button>
             <button class="btn pri" onclick="showModal()">Selesai</button>
           </div>
