@@ -202,6 +202,30 @@
   .fnote:focus{outline:0;border-color:var(--red);box-shadow:0 0 0 3px var(--red-soft)}
   .follow.need .fbox{border-color:var(--red);animation:shake .4s}
   .slideIn{animation:fadeUp .45s var(--ease) both}
+  /* Kartu layanan + penilaian di slide Status */
+  #layOpts{display:flex;flex-direction:column;gap:10px}
+  .prod.lay{margin:0;padding:0;display:block;cursor:default;background:#fff}
+  .lay .lh{display:flex;align-items:center;gap:12px;padding:12px 14px;cursor:pointer;user-select:none}
+  .lay .lh .ico{width:38px;height:38px}
+  .lay .lh .ico svg{width:20px;height:20px}
+  .lay .lh .pinfo{flex:1;min-width:0}
+  .lay .lh .pdesc{margin:1px 0 0}
+  .lay .ck2{width:22px;height:22px;border-radius:7px;border:1.5px solid var(--line);display:grid;place-items:center;flex:0 0 auto;transition:all .25s var(--ease)}
+  .lay .ck2 svg{width:12px;height:12px;stroke:#fff;stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:20;stroke-dashoffset:20;transition:stroke-dashoffset .3s var(--ease) .05s}
+  .lay.on{border-color:rgba(215,25,32,.45);box-shadow:0 10px 22px -16px rgba(215,25,32,.6)}
+  .lay.on .ck2{background:var(--red);border-color:var(--red)} .lay.on .ck2 svg{stroke-dashoffset:0}
+  .lay.on .ico{background:var(--red)} .lay.on .ico svg{stroke:#fff}
+  .lay .rb{display:grid;grid-template-rows:0fr;transition:grid-template-rows .45s var(--ease)}
+  .lay.on .rb{grid-template-rows:1fr}
+  .lay .rb > div{overflow:hidden}
+  .lay .rbi{padding:0 14px 14px 64px}
+  .lay .rlbl{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--muted);margin-bottom:4px}
+  .lay .rlbl .plabel{opacity:1;transform:none}
+  .lay .lnama{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:9px 11px;font:14px 'Inter',sans-serif;margin-bottom:10px}
+  .lay .lnama:focus{outline:0;border-color:var(--red);box-shadow:0 0 0 3px var(--red-soft)}
+  .lay.need{border-color:var(--red);animation:shake .4s}
+  .lay .lnama.need{border-color:var(--red);animation:shake .4s}
+  @media (max-width:400px){ .lay .rbi{padding:0 12px 12px 12px} }
   /* Slide tambahan */
   .opts.one{grid-template-columns:1fr}
   .opt.row{flex-direction:row;align-items:center;padding:14px 46px 14px 16px;font-size:14px;line-height:1.35}
@@ -498,15 +522,6 @@
         </div>
       </section>
 
-      <!-- SLIDE: Penilaian produk (hanya untuk yang sudah pakai) -->
-      <section class="slide" data-s="nilai">
-        <div class="badge">Mode edit penilaian</div>
-        <div class="eyebrow a langkah" style="--i:0"></div>
-        <h1 class="a" style="--i:1" data-t="nilai.judul"></h1>
-        <span class="accent"></span>
-        <div id="produk"></div>
-      </section>
-
       <!-- SLIDE: Kesan & saran -->
       <section class="slide" data-s="saran">
         <div class="badge">Mode edit penilaian</div>
@@ -695,8 +710,12 @@ let pengguna = '';          // 'Sudah' | 'Belum'
 const layanan = [];         // produk yang sudah dipakai
 const flow = () => ALUR[pengguna] || ALUR.Sudah;
 
-const rating = [0, 0, 0, 0];
-const detail = PRODUK.map(() => ({ tags: [], note: '' }));
+/* Layanan yang bisa dinilai: 4 produk + "Lainnya" (nama diisi sendiri) */
+const ITEM = PRODUK.concat([{ nama:'Lainnya', lain:true, icon:'<circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>' }]);
+const IL = ITEM.length - 1;                      // indeks "Lainnya"
+const rating = ITEM.map(() => 0);
+const detail = ITEM.map(() => ({ tags: [], note: '' }));
+const namaItem = i => i === IL ? ($('lainNama') && $('lainNama').value.trim()) || CFG.status.lainnya : PRODUK[i].nama;
 const kebutuhan = [];
 const setRating = [], setKeb = {}, setLay = {};
 let step = 'data';
@@ -721,22 +740,6 @@ function setPengguna(v) {
   renderStepper(); $('err').textContent = '';
 }
 document.querySelectorAll('.ync').forEach(c => c.onclick = () => setPengguna(c.dataset.v));
-
-PRODUK.forEach(p => {
-  const b = document.createElement('button');
-  b.type = 'button'; b.className = 'opt';
-  b.innerHTML = `<span class="oi"><svg viewBox="0 0 24 24">${p.icon}</svg></span>${p.nama}
-    <span class="ck"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>`;
-  setLay[p.nama] = on => {
-    const i = layanan.indexOf(p.nama);
-    if (on && i < 0) layanan.push(p.nama);
-    if (!on && i >= 0) layanan.splice(i, 1);
-    b.classList.toggle('on', on);
-    $('layananBox').classList.remove('need'); $('err').textContent = '';
-  };
-  b.onclick = () => setLay[p.nama](!layanan.includes(p.nama));
-  $('layOpts').appendChild(b);
-});
 
 /* ---------- Bangun pilihan kebutuhan ---------- */
 KEBUTUHAN.forEach(k => {
@@ -831,20 +834,24 @@ function kosongTambahan(x) {
   return Array.isArray(v) ? !v.length : !v || (typeof v === 'string' && !v.trim());
 }
 
-/* ---------- Bangun kartu produk + panel lanjutan ---------- */
-PRODUK.forEach((p, idx) => {
+/* ---------- Kartu layanan + penilaian (di slide Status, muncul jika "Sudah") ---------- */
+ITEM.forEach((p, idx) => {
   const el = document.createElement('div');
-  el.className = 'prod a'; el.style.setProperty('--i', idx + 2);
-  el.innerHTML = `<div class="ico"><svg viewBox="0 0 24 24">${p.icon}</svg></div>
-    <div class="pinfo">
-      <div class="ptop"><span class="pname">${idx + 1}. ${p.nama}</span><span class="plabel"></span></div>
-      <div class="pdesc">${p.desc}</div>
+  el.className = 'prod lay';
+  const judul = p.lain ? esc(CFG.status.lainnya) : esc(p.nama);
+  const sub = p.lain ? esc(CFG.status.lainnyaSub) : esc(p.desc);
+  el.innerHTML = `<div class="lh"><div class="ico"><svg viewBox="0 0 24 24">${p.icon}</svg></div>
+      <div class="pinfo"><span class="pname">${judul}</span><div class="pdesc">${sub}</div></div>
+      <span class="ck2"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></div>
+    <div class="rb"><div><div class="rbi">
+      ${p.lain ? `<input class="lnama" id="lainNama" maxlength="80" placeholder="${esc(CFG.status.contohLainnya)}">` : ''}
+      <div class="rlbl"><span>Penilaian Anda</span><span class="plabel"></span></div>
       <div class="stars"></div>
-    </div>
-    <div class="follow"><div class="fin"><div class="fbox">
-      <div class="fq"><span class="fqt"></span><em></em></div>
-      <div class="chips"></div>
-      <input class="fnote" maxlength="300">
+      <div class="follow"><div class="fin"><div class="fbox">
+        <div class="fq"><span class="fqt"></span><em></em></div>
+        <div class="chips"></div>
+        <input class="fnote" maxlength="300">
+      </div></div></div>
     </div></div></div>`;
   const box = el.querySelector('.stars'), lbl = el.querySelector('.plabel');
   const fol = el.querySelector('.follow'), fbox = el.querySelector('.fbox'),
@@ -855,7 +862,7 @@ PRODUK.forEach((p, idx) => {
     const g = grup(v), cfg = LANJUT[g];
     if (!keep) detail[idx] = { tags: [], note: '' };
     fbox.className = 'fbox ' + g;
-    el.querySelector('.fqt').textContent = cfg.q.replace('{p}', p.nama);
+    el.querySelector('.fqt').textContent = cfg.q.replace('{p}', namaItem(idx));
     const em = el.querySelector('.fq em');
     em.textContent = cfg.req ? 'wajib' : 'opsional'; em.className = cfg.req ? 'req' : '';
     note.placeholder = cfg.req ? 'Ceritakan kendalanya…' : 'Catatan tambahan (opsional)';
@@ -896,7 +903,22 @@ PRODUK.forEach((p, idx) => {
     b.onmouseleave = () => paint(rating[idx]);
     box.appendChild(b);
   }
-  $('produk').appendChild(el);
+  // centang = "saya memakai layanan ini" -> bagian penilaian terbuka
+  setLay[p.nama] = on => {
+    const i = layanan.indexOf(p.nama);
+    if (on && i < 0) layanan.push(p.nama);
+    if (!on && i >= 0) { layanan.splice(i, 1); setRating[idx](0); }
+    el.classList.toggle('on', on);
+    $('layananBox').classList.remove('need'); $('err').textContent = '';
+    if (on && p.lain) setTimeout(() => $('lainNama').focus(), 350);
+  };
+  el.querySelector('.lh').onclick = () => setLay[p.nama](!layanan.includes(p.nama));
+  $('layOpts').appendChild(el);
+});
+$('lainNama').addEventListener('input', () => {
+  $('lainNama').classList.remove('need');
+  const q = document.querySelector('#layOpts .lay:last-child .fqt');   // perbarui {p} di pertanyaan lanjutan
+  if (q && rating[IL]) q.textContent = LANJUT[grup(rating[IL])].q.replace('{p}', namaItem(IL));
 });
 
 /* ---------- Validasi ---------- */
@@ -925,31 +947,25 @@ function validStep() {
     if (pengguna === 'Sudah' && !layanan.length) {
       shake($('layananBox')); $('err').textContent = 'Pilih minimal satu layanan yang Anda gunakan.'; return false;
     }
+    if (pengguna === 'Sudah') {
+      const kartu = document.querySelectorAll('#layOpts .lay');
+      let first = null, pesan = '';
+      ITEM.forEach((it, i) => {
+        if (!layanan.includes(it.nama)) return;
+        if (it.lain && !$('lainNama').value.trim()) { shake($('lainNama')); first = first || kartu[i]; pesan = pesan || 'Mohon tuliskan nama layanan lainnya.'; return; }
+        if (!rating[i]) { shake(kartu[i]); first = first || kartu[i]; pesan = pesan || 'Mohon beri penilaian untuk setiap layanan yang dipilih.'; }
+        else if (rating[i] <= 2 && !detail[i].tags.length && !detail[i].note.trim()) {
+          shake(kartu[i].querySelector('.follow')); first = first || kartu[i]; pesan = pesan || 'Untuk nilai 1–2 bintang, mohon pilih apa yang kurang.';
+        }
+      });
+      if (first) { $('err').textContent = pesan; first.scrollIntoView({ behavior: 'smooth', block: 'center' }); return false; }
+    }
     return true;
   }
   if (step === 'keb') {
     if (!kebutuhan.length) { shake($('opts')); $('err').textContent = 'Pilih minimal satu kebutuhan.'; return false; }
     if (kebutuhan.includes('Lainnya') && !$('kebLain').value.trim()) {
       shake($('lainBox')); $('kebLain').focus(); $('err').textContent = 'Mohon jelaskan kebutuhan lainnya.'; return false;
-    }
-    return true;
-  }
-  if (step === 'nilai') {
-    const prods = document.querySelectorAll('.prod');
-    let first = null;
-    rating.forEach((v, i) => {
-      if (!layanan.includes(PRODUK[i].nama)) return;   // produk tidak dipakai -> tidak dinilai
-      if (!v) { shake(prods[i]); first = first || prods[i]; }
-      else if (v <= 2 && !detail[i].tags.length && !detail[i].note.trim()) {
-        shake(prods[i].querySelector('.follow')); first = first || prods[i];
-      }
-    });
-    if (first) {
-      $('err').textContent = PRODUK.some((p, i) => layanan.includes(p.nama) && !rating[i])
-        ? 'Mohon beri penilaian untuk semua produk.'
-        : 'Untuk nilai 1–2 bintang, mohon pilih apa yang kurang.';
-      first.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      return false;
     }
     return true;
   }
@@ -981,7 +997,7 @@ function renderStepper() {
   st.insertAdjacentHTML('beforeend', `<div class="stcap"><b>${esc(names[ai])}</b></div>`);
   $('fill').style.width = (fin ? 100 : Math.max(cur, 0) / (names.length - 1) * 100) + '%';
   const lk = document.querySelector(`.slide[data-s="${step}"] .langkah`);
-  if (lk && cur >= 0) lk.textContent = `Langkah ${cur + 1} dari ${f.length}`;
+  if (lk && cur >= 0) lk.textContent = `Langkah ${cur + 1} dari ${f.length + 1}`;  // +1 = slide Selesai
 }
 
 function go(to) {
@@ -1000,14 +1016,6 @@ function go(to) {
   if (to === 'saran') { // teks slide Saran berbeda untuk pengunjung "Sudah" dan "Belum"
     const t = CFG.saran[pengguna] || CFG.saran.Sudah;
     $('saranJudul').textContent = t.judul; $('saranLabel').textContent = t.placeholder;
-  }
-  if (to === 'nilai') { // tampilkan hanya produk yang dipakai, nomor urut ulang
-    let no = 0;
-    document.querySelectorAll('.prod').forEach((p, i) => {
-      const pakai = layanan.includes(PRODUK[i].nama);
-      p.style.display = pakai ? '' : 'none';
-      if (pakai) p.querySelector('.pname').textContent = (++no) + '. ' + PRODUK[i].nama;
-    });
   }
   renderStepper();
   $('stepper').style.display = to === 'review' ? 'none' : '';
@@ -1046,10 +1054,13 @@ function kirim() {
     kebutuhan: KEBUTUHAN.map(k => k.nama).filter(k => kebutuhan.includes(k)),
     kebutuhanLain: $('kebLain').value,
     pengguna: pengguna,
-    layanan: PRODUK.map(p => p.nama).filter(n => pengguna === 'Sudah' && layanan.includes(n)),
+    layanan: ITEM.map(p => p.nama).filter(n => pengguna === 'Sudah' && layanan.includes(n)),
     rating: PRODUK.map((p, i) => pengguna === 'Sudah' && layanan.includes(p.nama) ? rating[i] : 0),
     detail: PRODUK.map((p, i) => pengguna === 'Sudah' && layanan.includes(p.nama)
       ? { tags: detail[i].tags.slice(), note: detail[i].note } : { tags: [], note: '' }),
+    lainnya: pengguna === 'Sudah' && layanan.includes('Lainnya')
+      ? { nama: $('lainNama').value.trim(), rating: rating[IL], detail: { tags: detail[IL].tags.slice(), note: detail[IL].note } }
+      : { nama: '', rating: 0, detail: { tags: [], note: '' } },
     saran: $('saran').value,
     tambahan: Object.fromEntries(TAMBAHAN.filter(x => flow().includes(x.id) && !kosongTambahan(x))
                                          .map(x => [x.id, jawabTambahan[x.id]]))
@@ -1059,10 +1070,11 @@ function kirim() {
       btn.disabled = false;
       simpanRecord(res.id);
       rec = null; // paksa ambil ulang saat cek berikutnya
-      renderSummary(data.rating);
+      const semua = data.rating.concat(data.lainnya.rating), nm = PRODUK.map(p => p.nama).concat(data.lainnya.nama || CFG.status.lainnya);
+      renderSummary(semua, nm);
       editId = null;
       go('selesai');
-      tampilHasil(data.rating, data.nama.trim(), res.edit, data.kebutuhan, data.kebutuhanLain);
+      tampilHasil(semua, data.nama.trim(), res.edit, data.kebutuhan, data.kebutuhanLain, nm);
     })
     .withFailureHandler(e => {
       btn.disabled = false; btn.textContent = label;
@@ -1071,8 +1083,8 @@ function kirim() {
     .submitPenilaian(data);
 }
 
-function renderSummary(r) {
-  const isi = PRODUK.map((p, i) => r[i] ? `<div class="sum"><small>${p.nama}</small><b><span>★</span> ${r[i]} · ${LABEL[r[i]]}</b></div>` : '').join('');
+function renderSummary(r, nm) {
+  const isi = r.map((v, i) => v ? `<div class="sum"><small>${esc(nm[i])}</small><b><span>★</span> ${v} · ${LABEL[v]}</b></div>` : '').join('');
   $('summary').style.display = isi ? '' : 'none';
   $('summary').innerHTML = isi;
 }
@@ -1127,7 +1139,8 @@ const ANI = {
 // {nama} diganti nama pengisi (sudah di-escape); **teks** jadi tebal
 const isiNama = (t, n) => tebal(t).split('{nama}').join(n);
 
-function tampilHasil(r, nama, isEdit, keb, kebLain) {
+function tampilHasil(r, nama, isEdit, keb, kebLain, nm) {
+  nm = nm || PRODUK.map(p => p.nama);
   const n = esc(nama), pre = isEdit ? 'Perubahan sudah disimpan. ' : '';
   const dinilai = r.filter(v => v > 0);
   const kebTeks = (keb || []).map(k => k === 'Lainnya' && kebLain ? kebLain : k);
@@ -1144,7 +1157,7 @@ function tampilHasil(r, nama, isEdit, keb, kebLain) {
 
   const rata = dinilai.reduce((a, b) => a + b, 0) / dinilai.length;
   const tipe = rata >= BATAS_PUAS ? 'puas' : rata >= BATAS_SEDANG ? 'sedang' : 'buruk';
-  const lemah = PRODUK.filter((p, i) => r[i] && r[i] <= 2).map(p => p.nama);
+  const lemah = nm.filter((p, i) => r[i] && r[i] <= 2);
 
   $('heroAni').innerHTML = ANI[tipe];
   const mood = $('mood');
@@ -1153,7 +1166,7 @@ function tampilHasil(r, nama, isEdit, keb, kebLain) {
 
   let msg = pre + isiNama(CFG.selesai[tipe].pesan, n);
   if (tipe !== 'puas' && lemah.length) {
-    msg += `<div class="fixlist" style="margin:14px 0 0"><b>${esc(CFG.selesai.judulPerbaikan)}</b>${lemah.map(x => `<span>${x}</span>`).join('')}</div>`;
+    msg += `<div class="fixlist" style="margin:14px 0 0"><b>${esc(CFG.selesai.judulPerbaikan)}</b>${lemah.map(x => `<span>${esc(x)}</span>`).join('')}</div>`;
   }
   $('doneMsg').innerHTML = msg;
   if (tipe === 'puas') setTimeout(confetti, 500);
@@ -1206,7 +1219,7 @@ function renderReview(d) {
   const row = (k, v) => `<div class="r"><span>${k}</span><b>${v ? esc(v) : '–'}</b></div>`;
   const keb = (d.kebutuhan || []).map(k => k === 'Lainnya' && d.kebutuhanLain ? 'Lainnya: ' + d.kebutuhanLain : k).join(', ');
   const det = (i) => {
-    const x = (d.detail || [])[i] || {}, t = (x.tags || []).join(', ');
+    const x = (i === 'L' ? (d.lainnya || {}).detail : (d.detail || [])[i]) || {}, t = (x.tags || []).join(', ');
     if (!t && !x.note) return '';
     return `<div class="r" style="padding-top:0"><span style="font-size:12px">${esc(t)}${t && x.note ? ' · ' : ''}${x.note ? '“' + esc(x.note) + '”' : ''}</span></div>`;
   };
@@ -1221,6 +1234,7 @@ function renderReview(d) {
       ${row('Sudah menggunakan?', d.pengguna)}
       ${d.pengguna === 'Sudah'
         ? PRODUK.map((p, i) => d.rating[i] ? `<div class="r"><span>${p.nama}</span><b class="st5">${bintang(d.rating[i])}</b></div>${det(i)}` : '').join('')
+          + (d.lainnya && d.lainnya.rating ? `<div class="r"><span>${esc(d.lainnya.nama)}</span><b class="st5">${bintang(d.lainnya.rating)}</b></div>${det('L')}` : '')
           + `<div class="r"><span>Rata-rata</span><b>${esc(d.rata)} / 5</b></div>`
         : ''}
     </div>
@@ -1247,11 +1261,14 @@ function mulaiEdit() {
   editId = rec.id;
   $('nama').value = rec.nama; $('instansi').value = rec.instansi;
   $('email').value = rec.email; $('hp').value = rec.hp;
-  PRODUK.forEach(p => setLay[p.nama]((rec.layanan || []).includes(p.nama)));
+  ITEM.forEach(p => setLay[p.nama]((rec.layanan || []).includes(p.nama)));
+  const L = rec.lainnya || {};
+  $('lainNama').value = L.nama || '';
   setPengguna(rec.pengguna || '');
   KEBUTUHAN.forEach(k => setKeb[k.nama]((rec.kebutuhan || []).includes(k.nama)));
   $('kebLain').value = rec.kebutuhanLain || '';
   rec.rating.forEach((v, i) => setRating[i](v || 0, v ? ((rec.detail || [])[i] || { tags: [], note: '' }) : null));
+  setRating[IL](L.rating || 0, L.rating ? (L.detail || { tags: [], note: '' }) : null);
   $('saran').value = rec.saran; $('cnt').textContent = rec.saran.length;
   TAMBAHAN.forEach(x => setTambahan[x.id]((rec.tambahan || {})[x.id]));
   document.querySelectorAll('.field.invalid').forEach(f => f.classList.remove('invalid'));
