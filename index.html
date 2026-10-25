@@ -809,15 +809,21 @@ function pasangPresentasi() {
   };
   $('vMenu').onclick = () => kembaliKeMenu();
   document.querySelectorAll('#mat [data-tutup]').forEach(b => b.onclick = () => kembaliKeForm());
-  window.addEventListener('popstate', e => {                    // tombol Back di HP
-    const st = e.state && e.state.mat;
-    if (st === 'menu' || st === 'view') tampil('menu');
+  // Tombol Back di HP: dari presentasi -> menu materi, dari menu -> kembali ke slide form terakhir
+  window.addEventListener('popstate', () => {
+    if ($('mat').hidden) return;
+    if ($('matView').classList.contains('on')) { tampil('menu'); tandai('menu', true); }
     else tutupMat();
   });
 }
 const histOk = (() => { try { return !!history.pushState; } catch (e) { return false; } })();
-const push = st => { if (histOk) try { history.pushState({ mat: st }, ''); } catch (e) {} };
 const posisi = () => { try { return history.state && history.state.mat; } catch (e) { return null; } };
+// Hanya 1 entri riwayat untuk menangkap tombol Back. Tombol di layar TIDAK memakai history.back(),
+// supaya tidak pernah memuat ulang halaman / kembali ke awal form.
+function tandai(st, baru) {
+  if (!histOk) return;
+  try { baru ? history.pushState({ mat: st }, '') : history.replaceState({ mat: st }, ''); } catch (e) {}
+}
 function tampil(v) {
   $('matMenu').classList.toggle('on', v === 'menu'); $('matView').classList.toggle('on', v === 'view');
   if (v !== 'view') hapusIframe();                            // hentikan video saat keluar
@@ -834,20 +840,19 @@ function pasangIframe(src) {
 function bukaMenu() {
   const m = $('mat'); m.hidden = false; m.classList.remove('hiding'); void m.offsetWidth; m.classList.add('show');
   document.body.style.overflow = 'hidden';
-  tampil('menu'); push('menu');
+  tampil('menu');
+  const p = posisi(); tandai('menu', !(p === 'menu' || p === 'view' || p === 'tutup'));
 }
 function bukaMateri(i) {
   const x = MATERI[i];
   $('vTitle').textContent = x.nama; $('vExt').href = x.url;
   pasangIframe(linkEmbed(x.url));
-  tampil('view'); push('view');
+  tampil('view'); tandai('view');
 }
-function kembaliKeMenu() { posisi() === 'view' ? history.back() : tampil('menu'); }
-function kembaliKeForm() {
-  const n = posisi() === 'view' ? 2 : posisi() === 'menu' ? 1 : 0;
-  n ? history.go(-n) : tutupMat();
-}
+function kembaliKeMenu() { tampil('menu'); tandai('menu'); }
+function kembaliKeForm() { tutupMat(); }
 function tutupMat() {
+  if (posisi() === 'menu' || posisi() === 'view') tandai('tutup');
   const m = $('mat'); if (m.hidden) return;
   m.classList.remove('show'); m.classList.add('hiding'); hapusIframe();
   setTimeout(() => { m.hidden = true; m.classList.remove('hiding'); document.body.style.overflow = ''; }, 330);
