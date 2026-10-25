@@ -783,7 +783,14 @@ function linkEmbed(u) {
 let MATERI = [];
 function pasangPresentasi() {
   const P = CFG.presentasi || {};
-  MATERI = (P.daftar || []).filter(x => x && x.judul && /^https:\/\//i.test(x.url || ''));
+  let daftar = P.daftar;
+  if (!Array.isArray(daftar)) {                             // server masih memakai Code.gs lama (link per layanan)
+    console.warn('Code.gs belum versi terbaru: pengaturan "presentasi.daftar" tidak ada.');
+    daftar = [];
+    if (P.url) daftar.push({ judul: P.judulUmum || 'Materi Presentasi', sub: '', tombol: 'Lihat Materi', url: P.url });
+    Object.keys(P.link || {}).forEach(k => { if (P.link[k]) daftar.push({ judul: k, sub: '', tombol: 'Lihat Materi', url: P.link[k] }); });
+  }
+  MATERI = daftar.filter(x => x && x.judul && /^https:\/\//i.test(x.url || ''));
   if (!MATERI.length) return;                               // daftar kosong -> tombol disembunyikan
   const IKON = {
     video: '<rect x="2.5" y="5" width="14" height="14" rx="2.5"/><path d="M16.5 10l5-3v10l-5-3"/>',
